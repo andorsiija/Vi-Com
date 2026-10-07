@@ -7,7 +7,7 @@ The browser app uses Supabase Auth and Postgres through the Supabase JavaScript 
 1. Create a Supabase project and enable Email auth.
 2. In `supabase-config.js`, replace `YOUR_PROJECT_ID` and `YOUR_SUPABASE_ANON_KEY` with the project's URL and anon/publishable key. Never put a service-role key in browser code.
 3. Run `supabase-schema.sql` in the Supabase SQL Editor.
-4. Enable Realtime for both `commission_messages` and `commissions` in Database > Publications. Messages update the chat feed live, and commission changes (including stage approvals) refresh the open commission view.
+4. `supabase-schema.sql` adds `commission_messages` and `commissions` to the `supabase_realtime` publication. If you already ran the schema, enable both tables under Database > Publications. Messages update the chat feed live, and commission changes (including stage approvals) refresh the open commission view.
 5. Serve the workspace from a web server such as XAMPP Apache. Do not use `file://` URLs.
 
 ## Data and security
