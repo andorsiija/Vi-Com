@@ -325,3 +325,18 @@ export async function listenForMessages(commissionId, onMessages, onError = cons
 
   return () => { supabase.removeChannel(channel); };
 }
+
+export function listenForCommissionChanges(commissionId, onChange, onError = console.error) {
+  const channel = supabase.channel(`commission-updates-${commissionId}`)
+    .on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'commissions',
+      filter: `id=eq.${commissionId}`,
+    }, onChange)
+    .subscribe((status, error) => {
+      if (status === 'CHANNEL_ERROR' && error) onError(error);
+    });
+
+  return () => { supabase.removeChannel(channel); };
+}
