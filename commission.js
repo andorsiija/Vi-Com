@@ -97,8 +97,8 @@ export class CommissionTracker {
     this._messageGeneration = 0;
     this._commissionUnsubscribe = null;
     this._commissionSubscriptionId = null;
-    this._statePoller = null;
     this._stateSyncing = false;
+    this._refreshPending = false;
   }
 
   /* ── PUBLIC: mount ───────────────────────────────── */
@@ -109,7 +109,9 @@ export class CommissionTracker {
     this._renderSidebar();
     if (this.commissions.length) this._renderMain();
     this._bindFeedbackModal();
-    this._startStatePolling();
+    document.querySelector('#comm-main')?.addEventListener('focusout', () => {
+      if (this._refreshPending) queueMicrotask(() => this._refreshState());
+    });
   }
 
   /* ── LOAD commissions from DB ─────────────────────── */
@@ -127,10 +129,6 @@ export class CommissionTracker {
     return true;
   }
 
-  _startStatePolling() {
-    this._statePoller = setInterval(() => this._refreshState(), 10000);
-  }
-
   _isEditing() {
     const activeElement = document.activeElement;
     const main = document.querySelector('#comm-main');
@@ -140,7 +138,11 @@ export class CommissionTracker {
   }
 
   async _refreshState() {
-    if (this._stateSyncing || document.hidden || this._isEditing()) return;
+    if (this._stateSyncing || this._isEditing()) {
+      this._refreshPending = true;
+      return;
+    }
+    this._refreshPending = false;
     this._stateSyncing = true;
     const activeId = this.commissions[this.active]?.id;
     const previousCommissions = this.commissions;
@@ -160,6 +162,10 @@ export class CommissionTracker {
       else document.querySelector('#comm-main').innerHTML = '';
     } finally {
       this._stateSyncing = false;
+      if (this._refreshPending && !this._isEditing()) {
+        this._refreshPending = false;
+        queueMicrotask(() => this._refreshState());
+      }
     }
   }
 
