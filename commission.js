@@ -1,4 +1,4 @@
-import { apiFetch, listenForMessages } from './supabase-api.js';
+import { apiFetch, listenForCommissionChanges, listenForMessages } from './supabase-api.js';
 /**
  * commission.js — shared commission tracker backed by Supabase.
  * Works for both client (role='customer') and artist (role='artist').
@@ -95,6 +95,8 @@ export class CommissionTracker {
     this._feedbackIdx = 0;
     this._messageUnsubscribe = null;
     this._messageGeneration = 0;
+    this._commissionUnsubscribe = null;
+    this._commissionSubscriptionId = null;
     this._statePoller = null;
     this._stateSyncing = false;
   }
@@ -234,10 +236,15 @@ export class CommissionTracker {
   _renderMain() {
     this._stopMessageSubscription();
     const el = document.querySelector('#comm-main');
-    if (!el || !this.commissions.length) { if (el) el.innerHTML = ''; return; }
+    if (!el || !this.commissions.length) {
+      this._stopCommissionSubscription();
+      if (el) el.innerHTML = '';
+      return;
+    }
 
     const c = this.commissions[this.active];
     if (!c) return;
+    this._startCommissionSubscription(c.id);
 
     const partner = this.role === 'artist' ? c.clientName : c.artistName;
     el.innerHTML = '';
@@ -498,6 +505,21 @@ export class CommissionTracker {
   }
 
   /* ── LIVE MESSAGES ───────────────────────────────── */
+  _stopCommissionSubscription() {
+    this._commissionUnsubscribe?.();
+    this._commissionUnsubscribe = null;
+    this._commissionSubscriptionId = null;
+  }
+
+  _startCommissionSubscription(commissionId) {
+    if (this._commissionSubscriptionId === commissionId) return;
+    this._stopCommissionSubscription();
+    this._commissionSubscriptionId = commissionId;
+    this._commissionUnsubscribe = listenForCommissionChanges(commissionId, () => this._refreshState(), (error) => {
+      console.error('Could not listen for commission updates:', error);
+    });
+  }
+
   _stopMessageSubscription() {
     this._messageGeneration += 1;
     this._messageUnsubscribe?.();
