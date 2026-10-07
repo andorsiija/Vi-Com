@@ -1,0 +1,14 @@
+{
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/LandingPage/",
+      "permanent": false
+    },
+    {
+      "source": "/Artist%20Side/:path*",
+      "destination": "/Artist%20side/:path*",
+      "permanent": false
+    }
+  ]
+}
