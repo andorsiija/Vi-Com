@@ -304,14 +304,16 @@ export async function apiFetch(input, init = {}) {
 }
 
 export async function listenForMessages(commissionId, onMessages, onError = console.error) {
+  let refreshVersion = 0;
   const refresh = async () => {
+    const version = ++refreshVersion;
     const { data, error } = await supabase.from('commission_messages')
       .select('*').eq('commissionId', commissionId).order('createdAt');
     if (error) onError(error);
-    else onMessages(data || []);
+    else if (version === refreshVersion) onMessages(data || []);
   };
 
-  await refresh();
+  refresh();
   const channel = supabase.channel(`commission-messages-${commissionId}`)
     .on('postgres_changes', {
       event: '*',
@@ -320,6 +322,7 @@ export async function listenForMessages(commissionId, onMessages, onError = cons
       filter: `commissionId=eq.${commissionId}`,
     }, refresh)
     .subscribe((status, error) => {
+      if (status === 'SUBSCRIBED') refresh();
       if (status === 'CHANNEL_ERROR' && error) onError(error);
     });
 
@@ -335,6 +338,7 @@ export function listenForCommissionChanges(commissionId, onChange, onError = con
       filter: `id=eq.${commissionId}`,
     }, onChange)
     .subscribe((status, error) => {
+      if (status === 'SUBSCRIBED') onChange();
       if (status === 'CHANNEL_ERROR' && error) onError(error);
     });
 
