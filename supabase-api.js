@@ -233,7 +233,7 @@ async function dispatch(action, params, body) {
       senderName: profile.name,
       senderRole: profile.role,
       message: body.message,
-    }).select('id,status').single());
+    }).select('id').single());
     const commission = unwrap(await supabase.from('commissions').select('*').eq('id', body.commissionId).single());
     await createNotification({
       userId: profile.role === 'artist' ? commission.clientId : commission.artistId,
